@@ -1,11 +1,15 @@
 """
-Generator linkov za Phobs rezervacijski sistem (book.sava-hotels-resorts.com)
-==============================================================================
+Generator linkov za Phobs booking engine (secure.phobs.net) – Bernardin hoteli
+================================================================================
+
+Uporablja neposreden Phobs "googlehpa" endpoint (enak, ki ga uporablja Google
+Hotel Ads za direktno preusmeritev na rezervacijo), ki sprejme samo:
+hid (ID hotela), checkin (datum prihoda), nights (št. noči), currency, lang.
 
 Izbereš OBDOBJE (npr. 1.8.–7.8.) in dolžino/-e bivanja (2, 3, 4 noči ali
 poljubno) - aplikacija za vsak izbran hotel in vsako izbrano dolžino bivanja
-generira VSE možne kombinacije prihod/odhod znotraj tega obdobja ter sestavi
-direktne linke do razpoložljivosti.
+generira VSE možne kombinacije prihoda znotraj tega obdobja ter sestavi
+direktne linke do razpoložljivosti/rezervacije.
 
 Zagon:
     pip install -r requirements.txt
@@ -18,8 +22,7 @@ from urllib.parse import urlencode
 import pandas as pd
 import streamlit as st
 
-BASE_URL = "https://book.sava-hotels-resorts.com/book.php"
-COMPANY_ID = "205"  # fiksen za vse Bernardin hotele
+BASE_URL = "https://secure.phobs.net/webservice/googlehpa/booking.php"
 
 HOTELI = {
     "Grand Hotel Bernardin": "514",
@@ -31,8 +34,8 @@ HOTELI = {
 }
 
 st.set_page_config(page_title="Phobs – generator linkov", page_icon="🔗", layout="wide")
-st.title("🔗 Bernardin hoteli – generator linkov za razpoložljivost")
-st.caption("book.sava-hotels-resorts.com  ·  companyid je fiksno 205")
+st.title("🔗 Bernardin hoteli – generator linkov (Phobs booking engine)")
+st.caption("secure.phobs.net/webservice/googlehpa/booking.php")
 
 # --------------------------------------------------------------------------- #
 # Sidebar – izbira hotelov in splošne nastavitve
@@ -63,19 +66,15 @@ with st.sidebar:
 
     with st.expander("➕ Dodaj hotel z ročnim ID-jem"):
         rocno_ime = st.text_input("Ime hotela (poljubno)", value="")
-        rocno_id = st.text_input("hotelid", value="")
+        rocno_id = st.text_input("hid (ID hotela)", value="")
         if rocno_ime and rocno_id:
             HOTELI[rocno_ime] = rocno_id
             izbrani_seznam.append(rocno_ime)
 
     st.divider()
     st.header("⚙️ Ostale nastavitve")
-    ibelang = st.selectbox("Jezik (ibelang)", ["si", "en", "de", "it", "hr"], index=0)
-    st.caption(
-        "ℹ️ `crcid` namenoma ni vključen v linke – gre za sejno/sledilno kodo, "
-        "ki jo sistem generira sproti ob obisku strani. Vnaprej vpisana ali "
-        "stara vrednost povzroči napako (preusmeritev na `page=not_found`)."
-    )
+    lang = st.selectbox("Jezik (lang)", ["sl", "en", "de", "it", "hr"], index=0)
+    currency = st.selectbox("Valuta (currency)", ["EUR", "USD", "GBP"], index=0)
 
 # --------------------------------------------------------------------------- #
 # Glavno območje – obdobje + dolžina bivanja (min stay)
@@ -122,14 +121,13 @@ if not nights_options:
     st.stop()
 
 
-def sestavi_link(hotelid: str, checkin: date, checkout: date) -> str:
+def sestavi_link(hid: str, checkin: date, nights: int) -> str:
     params = {
-        "page": "availability",
-        "companyid": COMPANY_ID,
-        "hotelid": hotelid,
+        "hid": hid,
         "checkin": checkin.isoformat(),
-        "checkout": checkout.isoformat(),
-        "ibelang": ibelang,
+        "nights": nights,
+        "currency": currency,
+        "lang": lang,
     }
     return f"{BASE_URL}?{urlencode(params)}"
 
@@ -152,7 +150,7 @@ for ime_hotela in izbrani_seznam:
                 "Noči": nights,
                 "Prihod": checkin.isoformat(),
                 "Odhod": checkout.isoformat(),
-                "Link": sestavi_link(hid, checkin, checkout),
+                "Link": sestavi_link(hid, checkin, nights),
             })
             checkin += timedelta(days=1)
 
