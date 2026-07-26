@@ -71,10 +71,10 @@ with st.sidebar:
     st.divider()
     st.header("⚙️ Ostale nastavitve")
     ibelang = st.selectbox("Jezik (ibelang)", ["si", "en", "de", "it", "hr"], index=0)
-    crcid = st.text_input(
-        "crcid (neobvezno – kampanjska koda)",
-        value="",
-        help="Ni nujna za delovanje linka, pusti prazno, če je ne potrebuješ.",
+    st.caption(
+        "ℹ️ `crcid` namenoma ni vključen v linke – gre za sejno/sledilno kodo, "
+        "ki jo sistem generira sproti ob obisku strani. Vnaprej vpisana ali "
+        "stara vrednost povzroči napako (preusmeritev na `page=not_found`)."
     )
 
 # --------------------------------------------------------------------------- #
@@ -131,8 +131,6 @@ def sestavi_link(hotelid: str, checkin: date, checkout: date) -> str:
         "checkout": checkout.isoformat(),
         "ibelang": ibelang,
     }
-    if crcid.strip():
-        params["crcid"] = crcid.strip()
     return f"{BASE_URL}?{urlencode(params)}"
 
 
